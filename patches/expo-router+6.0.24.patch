@@ -1,0 +1,30 @@
+diff --git a/node_modules/expo-router/build/native-tabs/NativeBottomTabs/NativeTabsView.js b/node_modules/expo-router/build/native-tabs/NativeBottomTabs/NativeTabsView.js
+index 106de95..22be90e 100644
+--- a/node_modules/expo-router/build/native-tabs/NativeBottomTabs/NativeTabsView.js
++++ b/node_modules/expo-router/build/native-tabs/NativeBottomTabs/NativeTabsView.js
+@@ -107,7 +107,14 @@ function NativeTabsView(props) {
+     // #endregion
+     onNativeFocusChange={({ nativeEvent: { tabKey } }) => {
+             const descriptor = descriptors[tabKey];
+-            const route = descriptor.route;
++            const route = descriptor?.route;
++            if (route?.name === 'log') {
++                globalThis.__waterSyncNativeLogTabHandler?.();
++                return;
++            }
++            if (!route) {
++                return;
++            }
+             navigation.dispatch({
+                 type: 'JUMP_TO',
+                 target: state.key,
+@@ -251,7 +258,7 @@ function BottomTabsWrapper(props) {
+         console.warn(`Unsupported labelVisibilityMode: ${tabBarItemLabelVisibilityMode}. Supported values are: ${types_1.SUPPORTED_TAB_BAR_ITEM_LABEL_VISIBILITY_MODES.map((mode) => `"${mode}"`).join(', ')}`);
+         tabBarItemLabelVisibilityMode = undefined;
+     }
+-    return (<react_native_screens_1.BottomTabs tabBarItemLabelVisibilityMode={tabBarItemLabelVisibilityMode} tabBarMinimizeBehavior={tabBarMinimizeBehavior} {...rest}/>);
++    return (<react_native_screens_1.BottomTabs tabBarItemLabelVisibilityMode={tabBarItemLabelVisibilityMode} tabBarMinimizeBehavior={tabBarMinimizeBehavior} experimentalControlNavigationStateInJS {...rest}/>);
+ }
+ // #endregion
+ //# sourceMappingURL=NativeTabsView.js.map
+\ No newline at end of file

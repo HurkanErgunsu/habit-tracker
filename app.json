@@ -1,38 +1,68 @@
 {
   "expo": {
-    "name": "habit-tracker",
-    "slug": "habit-tracker",
+    "name": "WaterSync",
+    "slug": "water-tracker",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "habittracker",
+    "scheme": "water-tracker",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "icon": "./assets/images/icon.png",
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ergunsu.watertracker",
+      "buildNumber": "2",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": [
+          "en",
+          "tr",
+          "es",
+          "it",
+          "fr",
+          "ru",
+          "de",
+          "pt",
+          "ja"
+        ],
+        "NSPhotoLibraryUsageDescription": "WaterSync needs access to your photo library so you can choose a profile picture."
+      }
     },
     "android": {
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ergunsu.watertracker",
+      "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#121212",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/icon.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ergunsu.watertracker",
+      "versionCode": 4,
+      "blockedPermissions": [
+        "com.google.android.gms.permission.AD_ID",
+        "android.permission.ACCESS_ADSERVICES_AD_ID",
+        "android.permission.ACCESS_ADSERVICES_ATTRIBUTION"
+      ]
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
-      "expo-router",
       [
-        "expo-camera",
+        "expo-build-properties",
         {
-          "cameraPermission": "Allow Water Tracker to use your camera for friendly hydration photo verification."
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
         }
       ],
+      "./plugins/with-ios-pod-deployment-target.js",
+      "./plugins/with-android-optional-screen-features.js",
+      "expo-router",
       [
         "expo-notifications",
         {
@@ -46,16 +76,29 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#121212",
+          "backgroundColor": "#FFFFFF",
           "dark": {
-            "backgroundColor": "#121212"
+            "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "WaterSync needs access to your photo library so you can choose a profile picture.",
+          "cameraPermission": "WaterSync needs camera access so you can take a profile picture."
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1f23c47d-5685-492a-9256-8d0581d323a6"
+      }
     }
   }
 }

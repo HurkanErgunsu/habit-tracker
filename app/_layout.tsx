@@ -1,56 +1,97 @@
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import 'react-native-reanimated';
 
+import { getSettingsModalOptions } from '@/components/navigation/settings-sheet-chrome';
 import { getAppColors } from '@/constants/colors';
+import { AppPreferencesProvider } from '@/contexts/app-preferences-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { startListeningForPromoUrl } from '@/src/services/revenuecat';
+import { isTrialNotificationResponse } from '@/utils/trial-notifications';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => {
+    const data = notification.request.content.data as Record<string, unknown> | undefined;
+    const isTrialPush = isTrialNotificationResponse(data);
+    // Trial pushes are for outside the app; in-app we already show the sticky banner.
+    const suppressForegroundTrial = isTrialPush && AppState.currentState === 'active';
+
+    return {
+      shouldShowBanner: !suppressForegroundTrial,
+      shouldShowList: !suppressForegroundTrial,
+      shouldPlaySound: !suppressForegroundTrial,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 export default function RootLayout() {
+  return (
+    <AppPreferencesProvider>
+      <RootNavigation />
+    </AppPreferencesProvider>
+  );
+}
+
+function RootNavigation() {
   const colorScheme = useColorScheme();
   const colors = getAppColors(colorScheme);
+
+  useEffect(() => {
+    let stop: (() => void) | undefined;
+    void startListeningForPromoUrl().then((unsubscribe) => {
+      stop = unsubscribe;
+    });
+    return () => stop?.();
+  }, []);
+
+  const navigationTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
 
   return (
     <ThemeProvider
       value={{
-        ...DefaultTheme,
+        ...navigationTheme,
         colors: {
-          ...DefaultTheme.colors,
+          ...navigationTheme.colors,
           background: colors.background,
           card: colors.surface,
-          primary: colors.primaryDark,
+          primary: colors.primary,
           text: colors.text,
           border: colors.border,
         },
       }}>
       <Stack
+        initialRouteName="index"
         screenOptions={{
-          headerStyle: { backgroundColor: '#818CF8' },
+          headerStyle: { backgroundColor: colors.background },
           headerShadowVisible: false,
-          headerTintColor: '#FFFFFF',
+          headerTintColor: colors.text,
           headerTitleStyle: { fontWeight: '700' },
-          contentStyle: { backgroundColor: '#818CF8' },
+          contentStyle: { backgroundColor: colors.background },
         }}>
-        <Stack.Screen name="index" options={{ title: 'Daily Water Goal' }} />
-        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen
-          name="camera"
+          name="onboarding"
+          options={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
+        />
+        <Stack.Screen
+          name="paywall"
           options={{
             headerShown: false,
             presentation: 'fullScreenModal',
             animation: 'slide_from_bottom',
+            gestureEnabled: true,
+            contentStyle: { backgroundColor: colors.background },
           }}
         />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={getSettingsModalOptions(colors.background)} />
+        <Stack.Screen name="theme" options={getSettingsModalOptions(colors.background)} />
+        <Stack.Screen name="language" options={getSettingsModalOptions(colors.background)} />
       </Stack>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>

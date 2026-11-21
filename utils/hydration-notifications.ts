@@ -1,44 +1,54 @@
 import * as Notifications from 'expo-notifications';
 
+import { getStoredAppStrings } from '@/utils/i18n/load';
+
 const SMART_REMINDER_KEY = 'smart-hydration-reminder';
 const DAILY_SUMMARY_KEY = 'daily-hydration-summary';
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+const MIN_TRIGGER_DELAY_MS = 60 * 1000;
 
-const LEVEL_25_MESSAGES = [
-  "Hey! You've had a slow start today. Let's aim for a few more glasses before bedtime! 🥤",
-  "Still plenty of time to reach your goal! Don't give up, let's hydrate! 💦",
-];
+function toFutureTriggerDate(targetMs: number) {
+  return new Date(Math.max(targetMs, Date.now() + MIN_TRIGGER_DELAY_MS));
+}
 
-const LEVEL_50_MESSAGES = [
-  "Halfway there! You're doing great, but let's push for more! 🎯",
-  "You've made it halfway! Keep that water bottle close! 💧✨",
-];
-
-const LEVEL_75_MESSAGES = [
-  "Amazing! You're so close to your goal! Just a little bit more! 🚀",
-  "Fantastic progress! A few more sips and you've nailed it! 🌟",
-];
-
-const LEVEL_100_MESSAGES = [
-  'You crushed it! Goal achieved, hydration master! 🏆🔥',
-  'Perfect day! Your body loves you for this! Amazing job! 🎉',
-];
+async function scheduleDateNotification(
+  key: string,
+  title: string,
+  body: string,
+  triggerDate: Date
+) {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: { key },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerDate,
+      },
+    });
+  } catch (error) {
+    console.warn(`Failed to schedule ${key} notification`, error);
+  }
+}
 
 function pickRandom(messages: string[]) {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
-export function getDailySummaryMessage(percentage: number) {
-  if (percentage >= 100) {
-    return pickRandom(LEVEL_100_MESSAGES);
-  }
-  if (percentage >= 75) {
-    return pickRandom(LEVEL_75_MESSAGES);
-  }
-  if (percentage >= 50) {
-    return pickRandom(LEVEL_50_MESSAGES);
-  }
-  return pickRandom(LEVEL_25_MESSAGES);
+export async function getDailySummaryMessage(percentage: number) {
+  const t = await getStoredAppStrings();
+  const pool =
+    percentage >= 100
+      ? t.notifications.level100
+      : percentage >= 75
+        ? t.notifications.level75
+        : percentage >= 50
+          ? t.notifications.level50
+          : t.notifications.level25;
+  return pickRandom(pool);
 }
 
 export async function requestHydrationNotificationPermissions() {
@@ -59,26 +69,23 @@ async function cancelByKey(key: string) {
 
 export async function scheduleSmartHydrationReminder(lastIntakeAt: number | null) {
   await cancelByKey(SMART_REMINDER_KEY);
+  const t = await getStoredAppStrings();
 
   const now = Date.now();
   const baseTime = lastIntakeAt ?? now;
-  const triggerDate = new Date(baseTime + TWO_HOURS_MS);
+  const triggerDate = toFutureTriggerDate(baseTime + TWO_HOURS_MS);
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Hydration Check-In',
-      body: 'Time for a hydration break! 💧',
-      data: { key: SMART_REMINDER_KEY },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DATE,
-      date: triggerDate,
-    },
-  });
+  await scheduleDateNotification(
+    SMART_REMINDER_KEY,
+    t.notifications.reminderTitle,
+    t.notifications.reminderBody,
+    triggerDate
+  );
 }
 
 export async function scheduleDailySummaryNotification(percentage: number) {
   await cancelByKey(DAILY_SUMMARY_KEY);
+  const t = await getStoredAppStrings();
 
   const now = new Date();
   const triggerDate = new Date(now);
@@ -87,15 +94,12 @@ export async function scheduleDailySummaryNotification(percentage: number) {
     triggerDate.setDate(triggerDate.getDate() + 1);
   }
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Hydration Summary',
-      body: getDailySummaryMessage(percentage),
-      data: { key: DAILY_SUMMARY_KEY },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DATE,
-      date: triggerDate,
-    },
-  });
+  const safeTriggerDate = toFutureTriggerDate(triggerDate.getTime());
+
+  await scheduleDateNotification(
+    DAILY_SUMMARY_KEY,
+    t.notifications.summaryTitle,
+    await getDailySummaryMessage(percentage),
+    safeTriggerDate
+  );
 }
